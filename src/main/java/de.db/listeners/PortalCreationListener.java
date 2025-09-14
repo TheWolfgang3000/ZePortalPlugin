@@ -10,16 +10,27 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Handles the block selection process using the golden hoe.
+ */
 public class PortalCreationListener implements Listener {
 
-    // Diese Maps sind entscheidend für die Auswahl mit der Goldhacke
+    /**
+     * Stores the first selection point for each player.
+     */
     public static final Map<Player, Location> position1 = new HashMap<>();
+    /**
+     * Stores the second selection point for each player.
+     */
     public static final Map<Player, Location> position2 = new HashMap<>();
 
+    /**
+     * Listens for player interaction events to capture wand selections.
+     * @param event The PlayerInteractEvent.
+     */
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
-        // Diese Logik reagiert nur auf die Goldhacke
         if (player.getItemInHand().getType() != Material.GOLD_HOE) {
             return;
         }
@@ -30,10 +41,10 @@ public class PortalCreationListener implements Listener {
         Location clickedLocation = event.getClickedBlock().getLocation();
         if (event.getAction() == Action.LEFT_CLICK_BLOCK) {
             position1.put(player, clickedLocation);
-            player.sendMessage("§a[ZePortalPlugin] §ePosition 1 gesetzt!");
+            player.sendMessage("§a[ZePortalPlugin] §ePosition 1 set!");
         } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             position2.put(player, clickedLocation);
-            player.sendMessage("§a[ZePortalPlugin] §ePosition 2 gesetzt!");
+            player.sendMessage("§a[ZePortalPlugin] §ePosition 2 set!");
         }
     }
 }

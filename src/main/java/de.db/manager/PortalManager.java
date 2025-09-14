@@ -6,16 +6,19 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.util.config.Configuration;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Manages all active portals on the server.
+ * This class handles loading portals from portals.yml, activating new portals,
+ * running animations, deactivation, and performing various lookups.
+ */
 public class PortalManager {
 
     private final ZePortalPlugin plugin;
@@ -27,11 +30,23 @@ public class PortalManager {
     private Map<String, Portal> nameToPortalMap = new HashMap<>();
     private Set<String> activePortals = new HashSet<>();
 
+    /**
+     * Constructor for the PortalManager.
+     * @param plugin The main plugin instance.
+     */
     public PortalManager(ZePortalPlugin plugin) {
         this.plugin = plugin;
         loadPortals();
     }
 
+    /**
+     * Saves a newly created portal's data to the portals.yml file.
+     * @param portalName The unique name for the new portal.
+     * @param networkName The network this portal belongs to.
+     * @param templateName The name of the template used to create the portal.
+     * @param worldOrigin The anchor location of the portal structure in the world.
+     * @param templateBlocks The list of relative block data from the template.
+     */
     public void activatePortal(String portalName, String networkName, String templateName, Location worldOrigin, List<String> templateBlocks) {
         String path = "portale." + portalName;
         portalConfig.setProperty(path + ".netzwerk", networkName);
@@ -53,6 +68,9 @@ public class PortalManager {
         loadPortals();
     }
 
+    /**
+     * Loads all portal data from portals.yml into memory for fast access.
+     */
     public void loadPortals() {
         plugin.getDataFolder().mkdirs();
         if (portalFile == null) {
@@ -62,7 +80,7 @@ public class PortalManager {
             try {
                 portalFile.createNewFile();
             } catch (IOException e) {
-                log.log(Level.SEVERE, "[ZePortalPlugin] Konnte portals.yml nicht erstellen!", e);
+                log.log(Level.SEVERE, "[ZePortalPlugin] Could not create portals.yml!", e);
             }
         }
         portalConfig = new Configuration(portalFile);
@@ -92,9 +110,13 @@ public class PortalManager {
                 blockToPortalMap.put(loc, portal);
             }
         }
-        log.info("[ZePortalPlugin] " + nameToPortalMap.size() + " Portale geladen.");
+        log.info("[ZePortalPlugin] " + nameToPortalMap.size() + " portals loaded.");
     }
 
+    /**
+     * Starts the portal activation sequence.
+     * @param portalName The name of the portal to activate.
+     */
     public void startPortalAnimation(String portalName) {
         final Portal portal = nameToPortalMap.get(portalName);
         if (portal == null || portal.getInteriorLocations().isEmpty() || activePortals.contains(portalName)) {
@@ -104,14 +126,13 @@ public class PortalManager {
         for (Location loc : portal.getInteriorLocations()) {
             loc.getBlock().setType(Material.STATIONARY_WATER);
         }
-        plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
-            @Override
-            public void run() {
-                deactivatePortal(portalName);
-            }
-        }, 400L);
+        scheduleDeactivation(portalName);
     }
 
+    /**
+     * Deactivates a portal, removing its water.
+     * @param portalName The name of the portal to deactivate.
+     */
     public void deactivatePortal(String portalName) {
         Portal portal = nameToPortalMap.get(portalName);
         if (portal == null || !activePortals.contains(portalName)) return;
@@ -122,67 +143,14 @@ public class PortalManager {
             }
         }
         activePortals.remove(portalName);
-        log.info("[ZePortalPlugin] Portal '" + portalName + "' geschlossen.");
+        log.info("[ZePortalPlugin] Portal '" + portalName + "' closed.");
     }
 
-    // NEU: Wechselt das Ziel eines Portals und aktualisiert das Schild
-    public void cycleDestination(String portalName) {
-        Portal portal = nameToPortalMap.get(portalName);
-        if (portal == null) return;
-
-        List<Portal> destinations = new ArrayList<>();
-        for (Portal p : nameToPortalMap.values()) {
-            if (p.getNetwork().equals(portal.getNetwork()) && !p.getName().equals(portal.getName())) {
-                destinations.add(p);
-            }
-        }
-
-        if (destinations.isEmpty()) {
-            portal.setCurrentDestination("");
-            updateSign(portal);
-            return;
-        }
-
-        int currentIndex = -1;
-        for (int i = 0; i < destinations.size(); i++) {
-            if (destinations.get(i).getName().equals(portal.getCurrentDestination())) {
-                currentIndex = i;
-                break;
-            }
-        }
-
-        int nextIndex = (currentIndex + 1) % destinations.size();
-        portal.setCurrentDestination(destinations.get(nextIndex).getName());
-
-        updateSign(portal);
-    }
-
-    // NEU: Aktualisiert den Text auf dem Schild eines Portals in der Welt
-    public void updateSign(Portal portal) {
-        Sign signBlock = null;
-        for (Location loc : portal.getAllBlockLocations()) {
-            if (loc.getBlock().getType() == Material.WALL_SIGN || loc.getBlock().getType() == Material.SIGN_POST) {
-                if (loc.getBlock().getState() instanceof Sign) {
-                    signBlock = (Sign) loc.getBlock().getState();
-                    break;
-                }
-            }
-        }
-
-        if (signBlock == null) return;
-
-        signBlock.setLine(0, "§9--" + portal.getName() + "--");
-        if (portal.getCurrentDestination().isEmpty()) {
-            signBlock.setLine(1, "§cKein Ziel");
-            signBlock.setLine(2, "gefunden");
-        } else {
-            signBlock.setLine(1, "§7Ziel:");
-            signBlock.setLine(2, "§f" + portal.getCurrentDestination());
-        }
-        signBlock.setLine(3, "§8(" + portal.getNetwork() + ")");
-        signBlock.update();
-    }
-
+    /**
+     * Checks if a given block is part of an active portal's interior.
+     * @param block The block to check.
+     * @return The Portal object if the block is part of an active portal, otherwise null.
+     */
     public Portal getActivePortalByBlock(Block block) {
         if (block.getType() != Material.STATIONARY_WATER && block.getType() != Material.WATER) {
             return null;
@@ -196,19 +164,52 @@ public class PortalManager {
         return null;
     }
 
+    /**
+     * Finds a safe teleport destination location for a given portal.
+     * @param startPortal The portal the player is teleporting from.
+     * @param player The player who is teleporting.
+     * @return A safe teleport Location, or null if no destination is found.
+     */
     public Location findTeleportDestination(Portal startPortal, Player player) {
-        // HINWEIS: Diese Methode müssen wir anpassen, damit sie das ausgewählte Ziel nutzt
-        Portal destinationPortal = nameToPortalMap.get(startPortal.getCurrentDestination());
-        if (destinationPortal != null) {
-            Location center = destinationPortal.getInteriorLocations().get(destinationPortal.getInteriorLocations().size() / 2);
-            Location safeSpot = center.clone();
-            safeSpot.setYaw(player.getLocation().getYaw());
-            safeSpot.setPitch(player.getLocation().getPitch());
-            return safeSpot.add(0.5, 0, 1.5);
+        for (Portal destinationPortal : nameToPortalMap.values()) {
+            if (destinationPortal.getNetwork().equals(startPortal.getNetwork()) && !destinationPortal.getName().equals(startPortal.getName())) {
+                Location center = destinationPortal.getInteriorLocations().get(destinationPortal.getInteriorLocations().size() / 2);
+                Location safeSpot = center.clone();
+                safeSpot.setYaw(player.getLocation().getYaw());
+                safeSpot.setPitch(player.getLocation().getPitch());
+                return safeSpot.add(0.5, 0, 1.5);
+            }
         }
         return null;
     }
 
+    /**
+     * Retrieves a Portal object by one of its component blocks (frame, sign, button).
+     * @param block The block to check.
+     * @return The Portal object, or null if the block is not part of any portal.
+     */
+    public Portal getPortalByBlock(Block block) {
+        return blockToPortalMap.get(block.getLocation());
+    }
+
+    /**
+     * Schedules a delayed task to deactivate a portal.
+     * @param portalName The name of the portal to schedule for deactivation.
+     */
+    private void scheduleDeactivation(final String portalName) {
+        plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+            @Override
+            public void run() {
+                deactivatePortal(portalName);
+            }
+        }, 400L); // 20 seconds
+    }
+
+    /**
+     * Calculates the interior locations of a portal based on its frame.
+     * @param allPortalBlocks A set of all blocks belonging to the portal structure.
+     * @return A list of locations representing the portal's interior.
+     */
     private List<Location> calculateInterior(Set<Location> allPortalBlocks) {
         if (allPortalBlocks.isEmpty()) return new ArrayList<>();
         World world = allPortalBlocks.iterator().next().getWorld();
@@ -236,9 +237,5 @@ public class PortalManager {
             }
         }
         return interior;
-    }
-
-    public Portal getPortalByBlock(Block block) {
-        return blockToPortalMap.get(block.getLocation());
     }
 }

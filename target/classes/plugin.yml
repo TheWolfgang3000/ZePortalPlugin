@@ -1,10 +1,10 @@
 name: ZePortalPlugin
 main: de.db.ZePortalPlugin
-version: 1.0
-author: TheWolfgang3000
-description: Ein Plugin für benutzerdefinierte Stargate-ähnliche Portale.
+version: 1.1
+author: ZeBobbel
+description: A plugin for custom, Stargate-like portals.
 
 commands:
   portal:
-    description: Hauptbefehl für das ZePortalPlugin.
-    usage: /<command> [create]
+    description: Main command for the ZePortalPlugin.
+    usage: /<command> [help|new|create]

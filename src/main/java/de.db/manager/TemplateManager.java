@@ -13,6 +13,10 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Manages the creation and storage of portal templates.
+ * This class handles the templates.yml file.
+ */
 public class TemplateManager {
 
     private final ZePortalPlugin plugin;
@@ -20,11 +24,22 @@ public class TemplateManager {
     private File templateFile = null;
     private static final Logger log = Logger.getLogger("Minecraft");
 
+    /**
+     * Constructor for the TemplateManager.
+     * @param plugin The main plugin instance.
+     */
     public TemplateManager(ZePortalPlugin plugin) {
         this.plugin = plugin;
         loadTemplates();
     }
 
+    /**
+     * Creates a new portal template from an admin's selection.
+     * @param name The name for the new template.
+     * @param pos1 The first corner of the admin's selection.
+     * @param pos2 The second corner of the admin's selection.
+     * @return An error message string if creation fails, otherwise null on success.
+     */
     public String createTemplate(String name, Location pos1, Location pos2) {
         World world = pos1.getWorld();
         int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
@@ -46,9 +61,8 @@ public class TemplateManager {
                 }
             }
         }
-
         if (finalBlocks.isEmpty()) {
-            return "§cFehler: Die Auswahl enthält keine soliden Blöcke.";
+            return "§cError: The selection contains no solid blocks.";
         }
 
         int searchMinX = minX - 1, searchMaxX = maxX + 1;
@@ -65,30 +79,33 @@ public class TemplateManager {
                     Block currentBlock = world.getBlockAt(x, y, z);
                     Material type = currentBlock.getType();
                     if (type == Material.SIGN_POST || type == Material.WALL_SIGN) {
-                        if (signLocation != null) return "§cFehler: Es wurde mehr als ein Schild in der Nähe gefunden!";
+                        if (signLocation != null) return "§cError: More than one sign found near the frame!";
                         signLocation = currentBlock.getLocation();
                     }
                     if (type == Material.STONE_BUTTON) {
-                        if (buttonLocation != null) return "§cFehler: Es wurde mehr als ein Knopf in der Nähe gefunden!";
+                        if (buttonLocation != null) return "§cError: More than one button found near the frame!";
                         buttonLocation = currentBlock.getLocation();
                     }
                 }
             }
         }
-
-        if (signLocation == null) return "§cFehler: Es wurde kein Schild in der Nähe des Rahmens gefunden!";
-        if (buttonLocation == null) return "§cFehler: Es wurde kein Knopf in der Nähe des Rahmens gefunden!";
+        if (signLocation == null) return "§cError: No sign found near the frame!";
+        if (buttonLocation == null) return "§cError: No button found near the frame!";
 
         finalBlocks.add(getBlockData(signLocation.getBlock(), origin));
         finalBlocks.add(getBlockData(buttonLocation.getBlock(), origin));
-
         String path = "templates." + name;
         templateConfig.setProperty(path + ".blocks", finalBlocks);
         templateConfig.save();
-
         return null;
     }
 
+    /**
+     * Converts a block's data into a relative string format for storage.
+     * @param block The block to process.
+     * @param origin The anchor point (0,0,0) of the template.
+     * @return A string representation of the block's relative position and type.
+     */
     private String getBlockData(Block block, Location origin) {
         int relX = block.getX() - origin.getBlockX();
         int relY = block.getY() - origin.getBlockY();
@@ -96,10 +113,11 @@ public class TemplateManager {
         return relX + ";" + relY + ";" + relZ + ";" + block.getType().name() + ";" + block.getData();
     }
 
+    /**
+     * Loads the templates.yml file from disk. Creates it if it doesn't exist.
+     */
     public void loadTemplates() {
-        // NEU: Stelle sicher, dass der Plugin-Ordner existiert
         plugin.getDataFolder().mkdirs();
-
         if (templateFile == null) {
             templateFile = new File(plugin.getDataFolder(), "templates.yml");
         }
@@ -107,13 +125,18 @@ public class TemplateManager {
             try {
                 templateFile.createNewFile();
             } catch (IOException e) {
-                log.log(Level.SEVERE, "[ZePortalPlugin] Konnte templates.yml nicht erstellen!", e);
+                log.log(Level.SEVERE, "[ZePortalPlugin] Could not create templates.yml!", e);
             }
         }
         templateConfig = new Configuration(templateFile);
         templateConfig.load();
     }
 
+    /**
+     * Retrieves the list of block data strings for a specific template.
+     * @param name The name of the template to retrieve.
+     * @return A List of block data strings, or null if the template is not found.
+     */
     public List<String> getTemplateBlocks(String name) {
         String path = "templates." + name + ".blocks";
         if (templateConfig.getList(path) != null) {
