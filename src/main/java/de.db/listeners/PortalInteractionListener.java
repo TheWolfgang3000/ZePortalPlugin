@@ -1,6 +1,7 @@
 package de.db.listeners;
 
 import de.db.ZePortalPlugin;
+import de.db.portal.Portal; // Wichtig: Die neue Portal-Klasse importieren
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -29,14 +30,13 @@ public class PortalInteractionListener implements Listener {
 
         // Prüfen, ob der geklickte Block ein Steinknopf ist
         if (clickedBlock.getType() == Material.STONE_BUTTON) {
-            // Jetzt fragen wir den PortalManager: Gehört dieser Knopf zu einem Portal?
-            String portalName = plugin.getPortalManager().getPortalNameByBlock(clickedBlock);
+            // Wir holen uns jetzt das ganze Portal-Objekt
+            Portal portal = plugin.getPortalManager().getPortalByBlock(clickedBlock);
 
-            if (portalName != null) {
-                // Ja, der Knopf gehört zu einem Portal!
-                player.sendMessage("§b[ZePortalPlugin] §7Du hast den Knopf von Portal '" + portalName + "' gedrückt!");
-
-                // TODO: Hier starten wir die Wasser-Animation!
+            if (portal != null) {
+                // HIER IST DIE ÄNDERUNG:
+                // Die alte Chat-Nachricht wird durch den Aufruf der Animation ersetzt.
+                plugin.getPortalManager().startPortalAnimation(portal.getName());
             }
         }
     }
