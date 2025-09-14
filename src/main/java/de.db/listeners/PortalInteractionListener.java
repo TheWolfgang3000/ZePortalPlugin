@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.block.BlockFromToEvent; // NEU
+import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 
@@ -24,12 +24,25 @@ public class PortalInteractionListener implements Listener {
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+
         Block clickedBlock = event.getClickedBlock();
+        Portal portal = plugin.getPortalManager().getPortalByBlock(clickedBlock);
+
+        if (portal == null) return;
+
+        // Wenn der Knopf gedrückt wird
         if (clickedBlock.getType() == Material.STONE_BUTTON) {
-            Portal portal = plugin.getPortalManager().getPortalByBlock(clickedBlock);
-            if (portal != null) {
+            // Wir prüfen, ob ein Ziel ausgewählt ist, bevor wir aktivieren
+            if (!portal.getCurrentDestination().isEmpty()) {
                 plugin.getPortalManager().startPortalAnimation(portal.getName());
+            } else {
+                event.getPlayer().sendMessage("§cBitte wähle zuerst ein Ziel auf dem Schild aus!");
             }
+        }
+
+        // Wenn das Schild geklickt wird
+        if (clickedBlock.getType() == Material.WALL_SIGN || clickedBlock.getType() == Material.SIGN_POST) {
+            plugin.getPortalManager().cycleDestination(portal.getName());
         }
     }
 
@@ -51,21 +64,17 @@ public class PortalInteractionListener implements Listener {
                 player.sendMessage("§dWhoosh!");
                 plugin.getPortalManager().deactivatePortal(portal.getName());
             } else {
-                player.sendMessage("§cKein Zielportal im selben Netzwerk gefunden!");
+                player.sendMessage("§cKein gültiges Zielportal gefunden!");
                 plugin.getPortalManager().deactivatePortal(portal.getName());
             }
         }
     }
 
-    // FINALE METHODE ZUM VERHINDERN DES WASSERFLUSSES
     @EventHandler
     public void onBlockFromTo(BlockFromToEvent event) {
         Block block = event.getBlock();
-        // Wir prüfen, ob der Block, der fließen will, Wasser ist
         if (block.getType() == Material.STATIONARY_WATER || block.getType() == Material.WATER) {
-            // Wir fragen den Manager, ob dieser Wasserblock Teil eines AKTIVEN Portals ist
             if (plugin.getPortalManager().getActivePortalByBlock(block) != null) {
-                // Wenn ja, brechen wir das Fließen ab.
                 event.setCancelled(true);
             }
         }

@@ -6,8 +6,10 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.util.config.Configuration;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -123,6 +125,64 @@ public class PortalManager {
         log.info("[ZePortalPlugin] Portal '" + portalName + "' geschlossen.");
     }
 
+    // NEU: Wechselt das Ziel eines Portals und aktualisiert das Schild
+    public void cycleDestination(String portalName) {
+        Portal portal = nameToPortalMap.get(portalName);
+        if (portal == null) return;
+
+        List<Portal> destinations = new ArrayList<>();
+        for (Portal p : nameToPortalMap.values()) {
+            if (p.getNetwork().equals(portal.getNetwork()) && !p.getName().equals(portal.getName())) {
+                destinations.add(p);
+            }
+        }
+
+        if (destinations.isEmpty()) {
+            portal.setCurrentDestination("");
+            updateSign(portal);
+            return;
+        }
+
+        int currentIndex = -1;
+        for (int i = 0; i < destinations.size(); i++) {
+            if (destinations.get(i).getName().equals(portal.getCurrentDestination())) {
+                currentIndex = i;
+                break;
+            }
+        }
+
+        int nextIndex = (currentIndex + 1) % destinations.size();
+        portal.setCurrentDestination(destinations.get(nextIndex).getName());
+
+        updateSign(portal);
+    }
+
+    // NEU: Aktualisiert den Text auf dem Schild eines Portals in der Welt
+    public void updateSign(Portal portal) {
+        Sign signBlock = null;
+        for (Location loc : portal.getAllBlockLocations()) {
+            if (loc.getBlock().getType() == Material.WALL_SIGN || loc.getBlock().getType() == Material.SIGN_POST) {
+                if (loc.getBlock().getState() instanceof Sign) {
+                    signBlock = (Sign) loc.getBlock().getState();
+                    break;
+                }
+            }
+        }
+
+        if (signBlock == null) return;
+
+        signBlock.setLine(0, "§9--" + portal.getName() + "--");
+        if (portal.getCurrentDestination().isEmpty()) {
+            signBlock.setLine(1, "§cKein Ziel");
+            signBlock.setLine(2, "gefunden");
+        } else {
+            signBlock.setLine(1, "§7Ziel:");
+            signBlock.setLine(2, "§f" + portal.getCurrentDestination());
+        }
+        signBlock.setLine(3, "§8(" + portal.getNetwork() + ")");
+        signBlock.update();
+    }
+
     public Portal getActivePortalByBlock(Block block) {
         if (block.getType() != Material.STATIONARY_WATER && block.getType() != Material.WATER) {
             return null;
@@ -137,14 +197,14 @@ public class PortalManager {
     }
 
     public Location findTeleportDestination(Portal startPortal, Player player) {
-        for (Portal destinationPortal : nameToPortalMap.values()) {
-            if (destinationPortal.getNetwork().equals(startPortal.getNetwork()) && !destinationPortal.getName().equals(startPortal.getName())) {
-                Location center = destinationPortal.getInteriorLocations().get(destinationPortal.getInteriorLocations().size() / 2);
-                Location safeSpot = center.clone();
-                safeSpot.setYaw(player.getLocation().getYaw());
-                safeSpot.setPitch(player.getLocation().getPitch());
-                return safeSpot.add(0.5, 0, 1.5);
-            }
+        // HINWEIS: Diese Methode müssen wir anpassen, damit sie das ausgewählte Ziel nutzt
+        Portal destinationPortal = nameToPortalMap.get(startPortal.getCurrentDestination());
+        if (destinationPortal != null) {
+            Location center = destinationPortal.getInteriorLocations().get(destinationPortal.getInteriorLocations().size() / 2);
+            Location safeSpot = center.clone();
+            safeSpot.setYaw(player.getLocation().getYaw());
+            safeSpot.setPitch(player.getLocation().getPitch());
+            return safeSpot.add(0.5, 0, 1.5);
         }
         return null;
     }
