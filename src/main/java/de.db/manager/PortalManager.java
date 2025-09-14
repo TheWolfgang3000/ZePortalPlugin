@@ -20,6 +20,7 @@ public class PortalManager {
     private Configuration portalConfig = null;
     private File portalFile = null;
     private static final Logger log = Logger.getLogger("Minecraft");
+
     private Map<Location, Portal> blockToPortalMap = new HashMap<>();
     private Map<String, Portal> nameToPortalMap = new HashMap<>();
     private Set<String> activePortals = new HashSet<>();
@@ -98,38 +99,15 @@ public class PortalManager {
             return;
         }
         activePortals.add(portalName);
-
-        // HIER WIRD DER "DAMM" GEBAUT
-        final List<Location> barriers = calculateBarriers(portal.getInteriorLocations());
-        for (Location loc : barriers) {
-            loc.getBlock().setType(Material.GLASS);
+        for (Location loc : portal.getInteriorLocations()) {
+            loc.getBlock().setType(Material.STATIONARY_WATER);
         }
-
-        List<Location> interior = new ArrayList<>(portal.getInteriorLocations());
-        final Location center = interior.get(interior.size() / 2);
-        Collections.sort(interior, new Comparator<Location>() {
-            @Override
-            public int compare(Location loc1, Location loc2) {
-                return Double.compare(loc1.distanceSquared(center), loc2.distanceSquared(center));
-            }
-        });
-        long delay = 2L;
-        for (final Location loc : interior) {
-            plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
-                @Override
-                public void run() {
-                    loc.getBlock().setType(Material.STATIONARY_WATER);
-                }
-            }, delay);
-            delay += 1L;
-        }
-
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
             @Override
             public void run() {
                 deactivatePortal(portalName);
             }
-        }, 400L); // 20 Sekunden
+        }, 400L);
     }
 
     public void deactivatePortal(String portalName) {
@@ -139,13 +117,6 @@ public class PortalManager {
             Block block = loc.getBlock();
             if (block.getType() == Material.STATIONARY_WATER || block.getType() == Material.WATER) {
                 block.setType(Material.AIR);
-            }
-        }
-        // HIER WIRD DER "DAMM" WIEDER ABGERISSEN
-        List<Location> barriers = calculateBarriers(portal.getInteriorLocations());
-        for (Location loc : barriers) {
-            if (loc.getBlock().getType() == Material.GLASS) {
-                loc.getBlock().setType(Material.AIR);
             }
         }
         activePortals.remove(portalName);
@@ -209,38 +180,5 @@ public class PortalManager {
 
     public Portal getPortalByBlock(Block block) {
         return blockToPortalMap.get(block.getLocation());
-    }
-
-    private List<Location> calculateBarriers(List<Location> interior) {
-        if (interior.isEmpty()) return new ArrayList<>();
-        List<Location> barriers = new ArrayList<>();
-        Location first = interior.get(0);
-        int minX = first.getBlockX(), maxX = first.getBlockX();
-        int minY = first.getBlockY(), maxY = first.getBlockY();
-        for(Location loc : interior){
-            if(loc.getBlockX() < minX) minX = loc.getBlockX();
-            if(loc.getBlockX() > maxX) maxX = loc.getBlockX();
-            if(loc.getBlockY() < minY) minY = loc.getBlockY();
-            if(loc.getBlockY() > maxY) maxY = loc.getBlockY();
-        }
-        int dimX = maxX - minX + 1;
-        int dimY = maxY - minY + 1;
-        if (dimX <= 1) { // Y-Z Portal
-            for (Location loc : interior) {
-                barriers.add(loc.clone().add(1, 0, 0));
-                barriers.add(loc.clone().add(-1, 0, 0));
-            }
-        } else if (dimY <= 1) { // X-Z Portal
-            for (Location loc : interior) {
-                barriers.add(loc.clone().add(0, 1, 0));
-                barriers.add(loc.clone().add(0, -1, 0));
-            }
-        } else { // X-Y Portal
-            for (Location loc : interior) {
-                barriers.add(loc.clone().add(0, 0, 1));
-                barriers.add(loc.clone().add(0, 0, -1));
-            }
-        }
-        return barriers;
     }
 }
