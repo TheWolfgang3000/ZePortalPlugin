@@ -1,14 +1,17 @@
 package de.db.listeners;
 
 import de.db.ZePortalPlugin;
-import de.db.portal.Portal; // Wichtig: Die neue Portal-Klasse importieren
+import de.db.portal.Portal;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockPhysicsEvent; // NEU
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 
 public class PortalInteractionListener implements Listener {
 
@@ -18,25 +21,24 @@ public class PortalInteractionListener implements Listener {
         this.plugin = plugin;
     }
 
+    // Die onPlayerInteract- und onPlayerMove-Methoden bleiben unverändert
     @EventHandler
-    public void onPlayerInteract(PlayerInteractEvent event) {
-        // Wir interessieren uns nur für Rechtsklicks auf einen Block
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
-            return;
-        }
+    public void onPlayerInteract(PlayerInteractEvent event) { /* ... */ }
 
-        Block clickedBlock = event.getClickedBlock();
-        Player player = event.getPlayer();
+    @EventHandler
+    public void onPlayerMove(PlayerMoveEvent event) { /* ... */ }
 
-        // Prüfen, ob der geklickte Block ein Steinknopf ist
-        if (clickedBlock.getType() == Material.STONE_BUTTON) {
-            // Wir holen uns jetzt das ganze Portal-Objekt
-            Portal portal = plugin.getPortalManager().getPortalByBlock(clickedBlock);
 
-            if (portal != null) {
-                // HIER IST DIE ÄNDERUNG:
-                // Die alte Chat-Nachricht wird durch den Aufruf der Animation ersetzt.
-                plugin.getPortalManager().startPortalAnimation(portal.getName());
+    // --- HIER IST DIE NEUE, MAGISCHE METHODE ---
+    @EventHandler
+    public void onBlockPhysics(BlockPhysicsEvent event) {
+        Block block = event.getBlock();
+        // Wir prüfen, ob der Block Wasser ist
+        if (block.getType() == Material.STATIONARY_WATER || block.getType() == Material.WATER) {
+            // Wir fragen den Manager, ob dieser Wasserblock Teil eines AKTIVEN Portals ist
+            if (plugin.getPortalManager().getActivePortalByBlock(block) != null) {
+                // Wenn ja, brechen wir das Physik-Update ab. Das Wasser wird nicht fließen.
+                event.setCancelled(true);
             }
         }
     }

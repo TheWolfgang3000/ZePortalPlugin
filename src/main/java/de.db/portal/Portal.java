@@ -4,7 +4,6 @@ import org.bukkit.Location;
 import java.util.List;
 import java.util.Set;
 
-// Diese Klasse ist einfach nur ein "Daten-Container" für ein aktives Portal.
 public class Portal {
     private final String name;
     private final String network;
@@ -18,19 +17,8 @@ public class Portal {
         this.interiorLocations = interiorLocations;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public String getNetwork() {
-        return network;
-    }
-
-    public Set<Location> getFrameBlockLocations() {
-        return frameBlockLocations;
-    }
-
-    public List<Location> getInteriorLocations() {
-        return interiorLocations;
-    }
+    public String getName() { return name; }
+    public String getNetwork() { return network; }
+    public Set<Location> getFrameBlockLocations() { return frameBlockLocations; }
+    public List<Location> getInteriorLocations() { return interiorLocations; }
 }

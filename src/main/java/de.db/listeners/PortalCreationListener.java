@@ -1,4 +1,3 @@
-// KORREKTUR: Paket-Name an deine Ordnerstruktur angepasst
 package de.db.listeners;
 
 import org.bukkit.Location;
@@ -12,12 +11,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PortalCreationListener implements Listener {
+
+    // Diese Maps sind entscheidend für die Auswahl mit der Goldhacke
     public static final Map<Player, Location> position1 = new HashMap<>();
     public static final Map<Player, Location> position2 = new HashMap<>();
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
+        // Diese Logik reagiert nur auf die Goldhacke
         if (player.getItemInHand().getType() != Material.GOLD_HOE) {
             return;
         }
@@ -32,9 +34,6 @@ public class PortalCreationListener implements Listener {
         } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             position2.put(player, clickedLocation);
             player.sendMessage("§a[ZePortalPlugin] §ePosition 2 gesetzt!");
-        }
-        if (position1.containsKey(player) && position2.containsKey(player)) {
-            player.sendMessage("§a[ZePortalPlugin] §7Innenraum des Portals markiert. Nutze nun §c/portal new <Name>");
         }
     }
 }
