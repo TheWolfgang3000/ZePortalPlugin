@@ -1,4 +1,5 @@
-ZePortalPlugin
+ZePortalPlugin:
+
 Are you tired of walking? Is the concept of "travel time" something you find quaint and unnecessary? Do you believe that the laws of physics are more like "general suggestions"? Then you've come to the right place.
 
 ZePortalPlugin is for the server admin who looks at the vast, open world and thinks, "I could probably connect that mountain peak to my basement with an invisible hole in reality." This plugin lets you do what vanilla Minecraft is too scared to: create custom-sized, invisible portals that teleport unsuspecting players from literally anywhere to anywhere else.
