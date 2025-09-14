@@ -1,0 +1,5 @@
+name: ZePortalPlugin
+main: de.db.zeportal.ZePortalPlugin
+version: 1.0
+author: ZeBobbel
+description: Ein Plugin für benutzerdefinierte Stargate-ähnliche Portale.
